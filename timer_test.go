@@ -78,3 +78,29 @@ func TestStopwatchLap(t *testing.T) {
 		t.Errorf("Expected second lap time around 2 seconds, got %v", laps[1])
 	}
 }
+
+func TestCountdownProgress(t *testing.T) {
+	done := make(chan bool)
+	c := NewCountdown(1*time.Second, func() {
+		done <- true
+	})
+	c.Start()
+
+	progressUpdates := make([]float64, 0)
+	go func() {
+		for progress := range c.Progress() {
+			progressUpdates = append(progressUpdates, progress)
+		}
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(2 * time.Second):
+		t.Errorf("Countdown did not trigger in expected time")
+	}
+
+	if len(progressUpdates) == 0 {
+		t.Errorf("Expected progress updates, but got none")
+	}
+}

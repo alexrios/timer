@@ -77,28 +77,43 @@ func (s *Stopwatch) Elapsed() time.Duration {
 
 // Countdown is a simple countdown timer.
 type Countdown struct {
-	duration time.Duration
-	callback func()
-	stopChan chan struct{}
+	duration     time.Duration
+	callback     func()
+	stopChan     chan struct{}
+	progressChan chan float64
 }
 
 // NewCountdown creates a new countdown timer.
 func NewCountdown(d time.Duration, cb func()) *Countdown {
 	return &Countdown{
-		duration: d,
-		callback: cb,
-		stopChan: make(chan struct{}),
+		duration:     d,
+		callback:     cb,
+		stopChan:     make(chan struct{}),
+		progressChan: make(chan float64),
 	}
 }
 
 // Start starts the countdown timer.
 func (c *Countdown) Start() {
 	go func() {
-		select {
-		case <-time.After(c.duration):
-			c.callback()
-		case <-c.stopChan:
-			// Timer stopped
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		startTime := time.Now()
+
+		for {
+			select {
+			case <-ticker.C:
+				elapsed := time.Since(startTime)
+				progress := float64(elapsed) / float64(c.duration)
+				if progress >= 1 {
+					c.callback()
+					return
+				}
+				c.progressChan <- progress
+			case <-c.stopChan:
+				// Timer stopped
+				return
+			}
 		}
 	}()
 }
@@ -106,6 +121,11 @@ func (c *Countdown) Start() {
 // Stop stops the countdown timer.
 func (c *Countdown) Stop() {
 	close(c.stopChan)
+}
+
+// Progress returns a channel for receiving progress updates.
+func (c *Countdown) Progress() <-chan float64 {
+	return c.progressChan
 }
 
 // FormatDuration formats a duration in a human-readable way.
