@@ -7,29 +7,72 @@ import (
 
 // Stopwatch is a simple stopwatch.
 type Stopwatch struct {
-	start   time.Time
-	end     time.Time
-	running bool
+	start              time.Time
+	end                time.Time
+	running            bool
+	paused             bool
+	pauseStartTime     time.Time
+	totalPauseDuration time.Duration
+	laps               []time.Duration
 }
 
 // Start starts the stopwatch.
 func (s *Stopwatch) Start() {
 	s.start = time.Now()
+	if s.paused {
+		s.totalPauseDuration += time.Since(s.pauseStartTime)
+		s.paused = false
+	} else {
+		s.start = time.Now()
+	}
 	s.running = true
 }
 
 // Stop stops the stopwatch.
 func (s *Stopwatch) Stop() {
+	if s.paused {
+		s.totalPauseDuration += time.Since(s.pauseStartTime)
+		s.paused = false
+	}
 	s.end = time.Now()
 	s.running = false
+}
+
+// Pause pauses the stopwatch.
+func (s *Stopwatch) Pause() {
+	if s.running && !s.paused {
+		s.pauseStartTime = time.Now()
+		s.paused = true
+	}
+}
+
+// Resume resumes the stopwatch.
+func (s *Stopwatch) Resume() {
+	if s.running && s.paused {
+		s.totalPauseDuration += time.Since(s.pauseStartTime)
+		s.paused = false
+	}
+}
+
+// Lap records a lap time.
+func (s *Stopwatch) Lap() {
+	if s.running {
+		lapTime := time.Since(s.start) - s.totalPauseDuration
+		s.laps = append(s.laps, lapTime)
+	}
+}
+
+// Laps returns the recorded lap times.
+func (s *Stopwatch) Laps() []time.Duration {
+	return s.laps
 }
 
 // Elapsed returns the elapsed time.
 func (s *Stopwatch) Elapsed() time.Duration {
 	if s.running {
-		return time.Since(s.start)
+		return time.Since(s.start) - s.totalPauseDuration
 	}
-	return s.end.Sub(s.start)
+	return s.end.Sub(s.start) - s.totalPauseDuration
 }
 
 // Countdown is a simple countdown timer.

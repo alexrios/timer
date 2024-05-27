@@ -41,3 +41,40 @@ func TestFormatDuration(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expected, result)
 	}
 }
+
+func TestStopwatchPauseResume(t *testing.T) {
+	s := &Stopwatch{}
+	s.Start()
+	time.Sleep(1 * time.Second)
+	s.Pause()
+	time.Sleep(1 * time.Second)
+	s.Resume()
+	time.Sleep(1 * time.Second)
+	s.Stop()
+
+	elapsed := s.Elapsed()
+	if elapsed < 2*time.Second || elapsed > 3*time.Second {
+		t.Errorf("Expected elapsed time around 2 seconds, got %v", elapsed)
+	}
+}
+
+func TestStopwatchLap(t *testing.T) {
+	s := &Stopwatch{}
+	s.Start()
+	time.Sleep(1 * time.Second)
+	s.Lap()
+	time.Sleep(1 * time.Second)
+	s.Lap()
+	s.Stop()
+
+	laps := s.Laps()
+	if len(laps) != 2 {
+		t.Errorf("Expected 2 laps, got %d", len(laps))
+	}
+	if laps[0] < 1*time.Second || laps[0] > 2*time.Second {
+		t.Errorf("Expected first lap time around 1 second, got %v", laps[0])
+	}
+	if laps[1] < 2*time.Second || laps[1] > 3*time.Second {
+		t.Errorf("Expected second lap time around 2 seconds, got %v", laps[1])
+	}
+}
