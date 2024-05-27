@@ -1,52 +1,43 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/alexrios/timer"
+	"github.com/alexrios/timer/v2"
 )
 
 func main() {
-	// Stopwatch example
+	// Create a new stopwatch
 	sw := &timer.Stopwatch{}
-	sw.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Start the stopwatch
+	if err := sw.Start(ctx); err != nil {
+		fmt.Println("Error starting stopwatch:", err)
+		return
+	}
+
+	// Simulate some work
 	time.Sleep(2 * time.Second)
-	sw.Pause()
-	fmt.Printf("Paused time: %s\n", timer.FormatDuration(sw.Elapsed()))
-	time.Sleep(1 * time.Second)
-	sw.Resume()
-	time.Sleep(1 * time.Second)
-	sw.Lap()
-	sw.Stop()
-	fmt.Printf("Total elapsed time: %s\n", timer.FormatDuration(sw.Elapsed()))
 
-	// Display laps
-	for i, lap := range sw.Laps() {
-		fmt.Printf("Lap %d: %s\n", i+1, timer.FormatDuration(lap))
+	// Record a lap
+	if err := sw.Lap(); err != nil {
+		fmt.Println("Error recording lap:", err)
+		return
 	}
 
-	// Countdown example
-	countdownDone := make(chan bool)
-	countdown := timer.NewCountdown(3*time.Second, func() {
-		fmt.Println("Countdown finished!")
-		countdownDone <- true
-	})
-	countdown.Start()
+	// Stop the stopwatch after some time
+	time.Sleep(1 * time.Second)
+	cancel() // This will stop the stopwatch
 
-	// Display countdown progress
-	go func() {
-		for progress := range countdown.Progress() {
-			fmt.Printf("Countdown progress: %.2f%%\n", progress*100)
-		}
-	}()
-
-	// Wait for countdown to finish or stop it early
-	select {
-	case <-countdownDone:
-		// Countdown completed
-	case <-time.After(1 * time.Second):
-		countdown.Stop()
-		fmt.Println("Countdown stopped early.")
+	// Get elapsed time
+	elapsed, err := sw.Elapsed()
+	if err != nil {
+		fmt.Println("Error getting elapsed time:", err)
+		return
 	}
+
+	fmt.Printf("Elapsed time: %v\n", elapsed)
 }
